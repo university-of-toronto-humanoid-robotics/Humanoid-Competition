@@ -5,6 +5,7 @@
 """
 
 import argparse
+import time
 from pathlib import Path
 
 import gymnasium as gym
@@ -32,8 +33,10 @@ def main():
         venv.norm_reward = False
         policy = PPO.load(args.run / "policy", device="cpu")
 
+    dt = venv.get_attr("dt")[0]  # control step in sim seconds
     successes, returns = [], []
     obs = venv.reset()
+    next_step = time.perf_counter()
     for _ in range(args.episodes):
         done, ep_return, info = False, 0.0, {}
         while not done:
@@ -42,6 +45,10 @@ def main():
             else:
                 action, _ = policy.predict(obs, deterministic=True)
             obs, reward, dones, infos = venv.step(action)
+            if args.render:  # pace to wall-clock time
+                next_step += dt
+                while time.perf_counter() < next_step:  # poll; sleep() oversleeps and lags the viewer
+                    pass
             ep_return += float(reward[0])
             done, info = bool(dones[0]), infos[0]
         successes.append(bool(info.get("is_success", False)))

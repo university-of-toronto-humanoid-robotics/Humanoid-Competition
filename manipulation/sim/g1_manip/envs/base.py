@@ -23,7 +23,7 @@ class G1ManipEnv(gym.Env):
     def __init__(
         self,
         joint_group: str = "right_arm",
-        fixed_base: bool = True,
+        fixed_base: bool = False,
         frame_skip: int = 10,
         action_scale: float = 0.75,
         reset_noise: float = 0.05,

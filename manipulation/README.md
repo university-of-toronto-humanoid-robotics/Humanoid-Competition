@@ -111,7 +111,7 @@ uv venv .venv --python 3.12 && source .venv/bin/activate
 uv pip install -e ".[train,dev]"
 ./scripts/fetch_g1.sh        # downloads the G1 model (~34 MB, gitignored)
 uv pip install -e ".[cad]" && python scripts/build_arena.py   # competition arena from the official CAD (~4 min)
-pytest tests                 # sanity checks (arena tests skip if the arena isn't built)
+python -m pytest tests                 # sanity checks (arena tests skip if the arena isn't built)
 ```
 
 ### Train / evaluate

@@ -1,0 +1,20 @@
+[project]
+name = "g1-loco"
+version = "0.1.0"
+description = "MuJoCo environments and IK controllers for the Unitree G1 (IEEE Humanoids 2026 Loco-Manipulation Challenge, mobility trials)"
+requires-python = ">=3.10"
+dependencies = [
+    "mujoco>=3.3",
+    "gymnasium>=1.0",
+    "numpy",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["g1_loco*"]

@@ -1,0 +1,5 @@
+# Downloaded by scripts/fetch_g1.sh
+g1_manip/assets/
+# Training outputs
+runs/
+*.egg-info/

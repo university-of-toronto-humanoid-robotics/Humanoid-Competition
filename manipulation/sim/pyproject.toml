@@ -1,0 +1,23 @@
+[project]
+name = "g1-manip"
+version = "0.1.0"
+description = "MuJoCo RL environments for Unitree G1 manipulation (IEEE Humanoids 2026 Loco-Manipulation Challenge)"
+requires-python = ">=3.10"
+dependencies = [
+    "mujoco>=3.3",
+    "gymnasium>=1.0",
+    "numpy",
+]
+
+[project.optional-dependencies]
+train = ["stable-baselines3>=2.4", "torch", "tensorboard"]
+# Only needed to (re)build the arena from the competition CAD: scripts/build_arena.py
+cad = ["pycollada", "trimesh", "scipy", "coacd"]
+dev = ["pytest"]
+
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["g1_manip*"]

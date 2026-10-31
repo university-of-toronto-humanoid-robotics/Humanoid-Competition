@@ -39,3 +39,37 @@ register(
     max_episode_steps=300,
     kwargs={"station": "valve_wall"},
 )
+register(
+    id="G1ArenaBulb-v0",
+    entry_point="g1_manip.envs:G1ArenaBulbEnv",
+    max_episode_steps=1000,  # several regrasp cycles
+    kwargs={"station": "bulb_wall"},
+)
+register(
+    id="G1ArenaDoor-v0",
+    entry_point="g1_manip.envs:G1ArenaDoorEnv",
+    max_episode_steps=600,
+    kwargs={"station": "door"},
+)
+
+# Floor-level fixtures: the robot has to crouch, so the whole body is controlled and the
+# fall check allows a lower pelvis.
+FLOOR = {"joint_group": "whole_body", "fall_height": 0.35}
+register(
+    id="G1ArenaButtonPressFloor-v0",
+    entry_point="g1_manip.envs:G1ArenaButtonsEnv",
+    max_episode_steps=500,
+    kwargs={"station": "button_floor", "sequence_length": 1, **FLOOR},
+)
+register(
+    id="G1ArenaValveFloor-v0",
+    entry_point="g1_manip.envs:G1ArenaValveEnv",
+    max_episode_steps=600,
+    kwargs={"station": "valve_floor", **FLOOR},
+)
+register(
+    id="G1ArenaBulbFloor-v0",
+    entry_point="g1_manip.envs:G1ArenaBulbEnv",
+    max_episode_steps=1250,
+    kwargs={"station": "bulb_floor", **FLOOR},
+)

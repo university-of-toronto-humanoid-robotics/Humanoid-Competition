@@ -176,6 +176,51 @@ Everything else is static, with collision shapes that are boxes, convex hulls, o
 - The organizers say the CAD is not final and has no real friction or mass data.
 - The CAD shows the door open toward the start side. I made it swing away from the start, because the rules say the door is pushed open. Flip the hinge range in `build_arena.py` if the final apparatus differs.
 
+### Scripted IK controllers
+
+[`g1_manip/scripted/`](sim/g1_manip/scripted/) holds IK-based controllers for the arena tasks, in the style of
+`locomotion/sim/g1_loco/button_ik.py`. Each task is a generator that reads as its action sequence. Joint
+targets go through the env's normal action interface (`env.action_for`).
+
+```bash
+python ik_play.py --task keypad --episodes 10      # or button_wall, valve_wall, button_floor, valve_floor, all
+mjpython ik_play.py --task button_wall --render
+```
+
+| Task | Controller | Status (sim) |
+|---|---|---|
+| `keypad` | `ButtonSequenceIK` | 10/10 seeds, peak hand force 2 N |
+| `button_wall` (all 5 buttons) | `ButtonSequenceIK` | 16/16 seeds, peak hand force 2–5 N |
+| `valve_wall` | `ValveTurnIK` | 50–70%. The 45°-tilted valves (`valve_wall_3`, `_4`) still fail |
+| `button_floor`, `valve_floor` | same, with a crouch | not working yet: the crouch doesn't get the hand close enough |
+| bulb, door | — | envs exist (`G1ArenaBulb-v0`, `G1ArenaDoor-v0`), controllers not written yet |
+
+How it works ([`base.py`](sim/g1_manip/scripted/base.py), [`ik.py`](sim/g1_manip/ik.py)):
+
+- **IK.** `SiteIK` is the locomotion solver with three additions. Per-joint weights make the waist cost 10×
+  in roll/pitch, so the arm does the work and the torso stays over the feet. `KeepOut` boxes keep the wrist
+  out of the chest. Joints are locked at their limits, with tighter caps where the full range collides:
+  shoulder roll ≤ -0.15, wrist pitch/yaw within ±1.3 (beyond that the wrist links hit each other).
+  `WholeBodyIK` adds the floating base and legs, with feet and CoM as the top-priority task.
+- **Balance.** The env uses `joint_group="whole_body"`, and the controller pitches the ankles to keep the CoM
+  over the middle of the feet. At the stand pose the CoM sits 3 cm behind it, near the heel edge. Without
+  this loop, reaching or pushing rocked the robot over.
+- **Contact force.** Pushing moves are force-guarded: above a limit (15 N for buttons, 30 N for valves) the
+  hand stops and backs off. Presses go slowly (3 cm/s) from 1 cm before contact and stop as soon as the
+  button lights. Commanded joint speed is capped at 2.5 rad/s, so an IK branch flip can't lunge the hand
+  into the board.
+- **Motion.** The first approach goes through a bent-elbow "ready" pose, swings to a pose 20 cm back from
+  the fixture, then moves in along the fixture axis. A direct swing from the hanging arm sweeps the hand
+  through the board. Moving between fixtures uses each fixture's canonical arm pose, solved from the rest
+  posture rather than warm-started: tracking long paths drifts into poses at the joint limits that then
+  flip.
+- **Stance.** The wall tasks stand 12 cm further back than the RL stations (`station_offset`). At 0.3 m a
+  finger pointing straight in needs the elbow folded to its stop.
+- Fixture poses are read from the simulator; on the robot they come from perception and the pre-mapped apparatus.
+
+`arena.STATION_SPECS` changed for `button_wall`/`button_floor` (lateral 0.18 → 0.04): the old stations put
+the robot inside the board frame's upright. Refresh existing builds with `python scripts/build_arena.py --stations-only`.
+
 ### Adding a task
 
 Subclass [`G1ManipEnv`](sim/g1_manip/envs/base.py) and implement:

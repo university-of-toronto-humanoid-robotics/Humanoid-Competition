@@ -47,8 +47,8 @@ STATION_SPECS = {
     "bulb_floor": dict(prefix="bulb_floor_", standoff=0.40, lateral=0.18),
     "valve_wall": dict(prefix="valve_wall_", standoff=0.30, lateral=0.18),
     "valve_floor": dict(prefix="valve_floor_", standoff=0.40, lateral=0.18),
-    "button_wall": dict(prefix="board_wall_", standoff=0.28, lateral=0.18),
-    "button_floor": dict(prefix="board_floor_", standoff=0.40, lateral=0.18),
+    "button_wall": dict(prefix="board_wall_", standoff=0.28, lateral=0.04),
+    "button_floor": dict(prefix="board_floor_", standoff=0.40, lateral=0.04),
 }
 
 

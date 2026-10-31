@@ -30,16 +30,21 @@ class G1ManipEnv(gym.Env):
         render_mode: str | None = None,
         render_size: tuple[int, int] = (480, 640),
         station: str | None = None,
+        station_offset: tuple[float, float] = (0.0, 0.0),
         include_terrain: bool = False,
         collision_radius: float | None = 2.5,
+        fall_height: float = 0.5,
     ):
         """
         Args:
             station: place the robot in the competition arena (built from the official CAD)
                 in front of this station, e.g. "keypad" or "valve_wall"; see arena.STATION_SPECS.
                 None uses an empty flat scene.
+            station_offset: (forward, left) shift of the robot from the station pose, in its own frame (m).
             include_terrain: keep the mobility ramps and stepover beams (removed in manipulation trials).
             collision_radius: disable static arena collisions farther than this from the station (speed).
+            fall_height: floating base only, the episode ends when the pelvis drops below this height above
+                the floor (m). Lower it for tasks that crouch.
         """
         self.fixed_base = fixed_base
         self.frame_skip = frame_skip
@@ -47,12 +52,17 @@ class G1ManipEnv(gym.Env):
         self.reset_noise = reset_noise
         self.render_mode = render_mode
         self.render_size = render_size
+        self.fall_height = fall_height
 
         spec, self._stand_qpos = robot.load_g1_spec(fixed_base)
         self.station = arena.stations()[station] if station is not None else None
         base = (0.0, 0.0, 0.0, 0.0)
         if self.station is not None:
-            base = (self.station.x, self.station.y, self.station.floor_z, self.station.yaw)
+            yaw = self.station.yaw
+            dx, dy = station_offset
+            x = self.station.x + dx * np.cos(yaw) - dy * np.sin(yaw)
+            y = self.station.y + dx * np.sin(yaw) + dy * np.cos(yaw)
+            base = (x, y, self.station.floor_z, yaw)
             arena.attach_arena(spec, include_terrain)
         self._base_pos = np.array([base[0], base[1], base[2] + robot.PELVIS_HEIGHT])
         self._base_quat = np.array([np.cos(base[3] / 2), 0, 0, np.sin(base[3] / 2)])
@@ -119,6 +129,10 @@ class G1ManipEnv(gym.Env):
     def pelvis_height(self) -> float:
         return float(self.data.xpos[self.pelvis_id][2])
 
+    def action_for(self, joint_targets: np.ndarray) -> np.ndarray:
+        """Inverse of the action mapping: the action that commands ``joint_targets`` for the controlled joints."""
+        return np.clip((joint_targets - self.default_ctrl[self.ctrl_ids]) / self.action_scale, -1.0, 1.0)
+
     # ----- gym API ----------------------------------------------------------
 
     def reset(self, *, seed: int | None = None, options: dict | None = None):
@@ -153,7 +167,7 @@ class G1ManipEnv(gym.Env):
 
         reward, terminated, info = self._task_reward(action)
         reward -= 0.01 * float(np.sum(np.square(action - self._prev_action)))
-        if not self.fixed_base and self.pelvis_height() - self._base_pos[2] < 0.5 - robot.PELVIS_HEIGHT:
+        if not self.fixed_base and self.pelvis_height() - self._base_pos[2] < self.fall_height - robot.PELVIS_HEIGHT:
             terminated = True
             info["fell"] = True
             reward -= 10.0
